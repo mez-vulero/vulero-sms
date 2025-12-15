@@ -146,6 +146,20 @@
   border-radius: 14px;
 }
 
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.import-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .field span {
   font-size: 14px;
   color: var(--text);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { defaultBaseUrl, sendSms } from './api/jasminClient'
 
@@ -9,6 +9,24 @@ const parseRecipients = (value) =>
     .split(/[\n,]+/)
     .map((entry) => entry.trim())
     .filter(Boolean)
+
+const parseCsvNumbers = (text) => {
+  const numbers = []
+  text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      line
+        .split(/[,;|\t]/)
+        .map((cell) => cell.trim())
+        .filter(Boolean)
+        .forEach((cell) => {
+          if (/[0-9]/.test(cell)) numbers.push(cell)
+        })
+    })
+  return numbers
+}
 
 function App() {
   const [baseUrl, setBaseUrl] = useState(defaultBaseUrl)
@@ -23,6 +41,7 @@ function App() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [note, setNote] = useState('')
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     const stored = localStorage.getItem(SETTINGS_KEY)
@@ -131,6 +150,35 @@ function App() {
     setNote('')
   }
 
+  const handleCsvImport = (text) => {
+    const numbers = parseCsvNumbers(text)
+    if (!numbers.length) {
+      setError('No numbers found in CSV')
+      return
+    }
+
+    setError('')
+    setRecipientsInput((prev) => {
+      const existing = parseRecipients(prev)
+      const merged = Array.from(
+        new Set([...existing, ...numbers].filter(Boolean)),
+      )
+      return merged.join('\n')
+    })
+  }
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => handleCsvImport(String(e.target?.result || ''))
+    reader.onerror = () => setError('Unable to read CSV file')
+    reader.readAsText(file)
+
+    event.target.value = ''
+  }
+
   const completedCount = results.filter((r) => r.status === 'sent').length
   const failedCount = results.filter((r) => r.status === 'failed').length
 
@@ -233,7 +281,27 @@ function App() {
 
           <div className="content-grid">
             <label className="field">
-              <span>Recipients</span>
+              <div className="field-head">
+                <span>Recipients</span>
+                <div className="import-actions">
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleFileChange}
+                    disabled={sending}
+                  />
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                  >
+                    Import CSV
+                  </button>
+                </div>
+              </div>
               <textarea
                 rows={4}
                 value={recipientsInput}
@@ -241,6 +309,9 @@ function App() {
                 placeholder="+2547..., one per line or separated by commas"
               />
               <small>We send one request per recipient via Jasmin /send.</small>
+              <small className="muted">
+                Imports numbers from .csv files (any column), keeping one per line.
+              </small>
             </label>
             <label className="field">
               <span>Message</span>
