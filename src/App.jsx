@@ -14,7 +14,7 @@ function App() {
   const [baseUrl, setBaseUrl] = useState(defaultBaseUrl)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [sender, setSender] = useState('')
+  const [from, setFrom] = useState('')
   const [recipientsInput, setRecipientsInput] = useState('')
   const [message, setMessage] = useState('')
   const [requestDlr, setRequestDlr] = useState(true)
@@ -31,7 +31,7 @@ function App() {
       const parsed = JSON.parse(stored)
       setBaseUrl(parsed.baseUrl || defaultBaseUrl)
       setUsername(parsed.username || '')
-      setSender(parsed.sender || '')
+      setFrom(parsed.from || parsed.sender || '')
     } catch (err) {
       console.warn('Unable to restore saved settings')
     }
@@ -40,9 +40,9 @@ function App() {
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
-      JSON.stringify({ baseUrl, username, sender }),
+      JSON.stringify({ baseUrl, username, from }),
     )
-  }, [baseUrl, username, sender])
+  }, [baseUrl, username, from])
 
   const recipients = useMemo(
     () => parseRecipients(recipientsInput),
@@ -83,7 +83,7 @@ function App() {
           baseUrl,
           username,
           password,
-          from: sender,
+          from,
           to,
           content: message,
           dlr: requestDlr ? 1 : 0,
@@ -186,12 +186,13 @@ function App() {
               />
             </label>
             <label className="field">
-              <span>Sender ID (optional)</span>
+              <span>From (Sender ID)</span>
               <input
-                value={sender}
-                onChange={(e) => setSender(e.target.value)}
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
                 placeholder="e.g. Vulero"
               />
+              <small>Used as the <code>from</code> parameter when sending.</small>
             </label>
             <label className="field">
               <span>Encoding</span>
